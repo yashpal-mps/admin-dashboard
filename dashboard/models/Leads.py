@@ -3,7 +3,7 @@ from django.db import models
 # Create your models here.
 
 
-class Leads(models.Model):
+class Lead(models.Model):
     # Lead Status Choices
     LEAD_STATUS = (
         ("won", "Won"),

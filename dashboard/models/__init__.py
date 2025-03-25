@@ -1,4 +1,4 @@
-from .Leads import Leads
+from .Leads import Lead
 from .Conversation import Conversation
 
-__all__ = ['Leads', 'Conversation'] 
+__all__ = ['Lead', 'Conversation'] 

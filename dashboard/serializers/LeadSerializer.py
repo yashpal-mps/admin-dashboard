@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from dashboard.models import Leads
+from dashboard.models.Leads import Lead
 
 class LeadSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Leads
+        model = Lead
         fields = '__all__'
