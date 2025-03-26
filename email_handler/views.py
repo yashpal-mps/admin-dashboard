@@ -7,21 +7,24 @@ from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
 from celery import shared_task
 from celery.schedules import crontab
-from celery.task import periodic_task
+# from celery.task import periodic_task
 from .tasks import analyze_email_response
 from dashboard.models import Lead
+import logging
+
 
 @shared_task
 def post_to_leads():
- 
-    leads = Lead.objects.all()  # Replace with your logic to retrieve leads
-    for lead in leads:
-        send_daily_message(lead)  # Replace with your logic to send messages
 
-# Periodic task to schedule at 9 AM every day
-@periodic_task(run_every=crontab(hour=9, minute=0))
-def scheduled_post_to_leads():
-    post_to_leads.delay()
+      leads = Lead.objects.all()
+      if not leads.exists():
+            logger.info("No leads found in the database.")
+            return
+
+      for lead in leads:
+        logger.info(f"Processing lead: {lead.email}")
+        send_daily_message(lead)
+
 
 class HandleIncomingEmailView(APIView):
     
@@ -36,14 +39,9 @@ class HandleIncomingEmailView(APIView):
 
         return Response({"error": "Invalid data"}, status=400)
 
-def get_all_leads():
-    # Replace this with your actual logic to fetch leads
-    return [{"id": 1, "email": "yash011033@gmail.com"}, {"id": 2, "email": "yashpal@pariqsha.com"}]
-
-def send_daily_message(lead):
-    # Replace this with your actual logic to post messages
-    print(f"Sending message to {lead['email']}")
-    
+# def get_all_leads():
+#     # Replace this with your actual logic to fetch leads
+#     return [{"id": 1, "email": "yash011033@gmail.com"}, {"id": 2, "email": "yashpal@pariqsha.com"}]
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EmailHandler(View):
@@ -65,19 +63,20 @@ class EmailHandler(View):
             return JsonResponse({"error": f"Internal Server Error: {str(e)}"}, status=500)
 
     
-class SendEmailView(View):
-    """Handles sending emails using Mailgun."""
-    
-    def post(self, request):
-        """Sends an email when accessed via GET request."""
-        try:
-            recipient = "yashpal@pariqsha.com"
-            body = "This is an automated email sent by Mailgun."
-            
-            email = EmailService(recipient, body)
-            response = email.send_message()
-            
-            return JsonResponse({"message": "Email sent successfully", "response": response}, status=200)
 
-        except Exception as e:
-            return JsonResponse({"error": f"Failed to send email: {str(e)}"}, status=500)
+logger = logging.getLogger(__name__)
+
+def send_daily_message(lead):
+    """Sends an automated email and logs the action."""
+    try:
+        recipient = lead.email
+        message = 'Hello, this is an automated email sent by your app.'
+
+        email = EmailService(recipient, message)
+        response = email.send_message()
+
+        logger.info(f"Email sent to {recipient} - Response: {response}")
+        print(f"Email sent to {recipient}")
+
+    except Exception as e:
+        logger.error(f"Error sending email to {recipient}: {str(e)}")
