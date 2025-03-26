@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,7 +40,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'import_export',
-    'dashboard', 
+    'dashboard',
+    'communication',
+    'email_handler',
+    'analysis',
 ]
 
 MIDDLEWARE = [
@@ -131,3 +135,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 IMPORT_EXPORT_USE_TRANSACTIONS = True
 IMPORT_EXPORT_SKIP_ADMIN_LOG = False 
+
+MAILGUN_DOMAIN = config('MAILGUN_DOMAIN')
+MAILGUN_API_KEY = config('MAILGUN_API_KEY')
+OPENROUTER_API_KEY = config('OPENROUTER_API_KEY')
