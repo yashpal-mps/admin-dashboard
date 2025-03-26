@@ -8,6 +8,10 @@ MAILGUN_DOMAIN = settings.MAILGUN_DOMAIN
 class EmailService(Communication):
     """Handles sending emails using Mailgun."""
 
+    def __init__(self, recipient, message):
+        super().__init__(recipient, message)
+
+
     def send_message(self):
         response = requests.post(
             f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages",
