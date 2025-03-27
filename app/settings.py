@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'email_handler',
     'analysis',
     'django_celery_beat',
+    'app',
 ]
 
 MIDDLEWARE = [
