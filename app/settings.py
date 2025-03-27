@@ -140,3 +140,12 @@ IMPORT_EXPORT_SKIP_ADMIN_LOG = False
 MAILGUN_DOMAIN = config('MAILGUN_DOMAIN')
 MAILGUN_API_KEY = config('MAILGUN_API_KEY')
 OPENROUTER_API_KEY = config('OPENROUTER_API_KEY')
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "mail.pariqsha.com"
+EMAIL_PORT = 587    
+EMAIL_USE_SSL = False  # If using 465
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')  # Replace with your Gmail address
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')  # Paste your generated App Password here
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')

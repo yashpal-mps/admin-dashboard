@@ -10,6 +10,7 @@ from celery.schedules import crontab
 # from celery.task import periodic_task
 from .tasks import analyze_email_response
 from dashboard.models import Lead
+from analysis.openrouter_ai import process_email
 import logging
 
 
@@ -22,7 +23,6 @@ def post_to_leads():
             return
 
       for lead in leads:
-        logger.info(f"Processing lead: {lead.email}")
         send_daily_message(lead)
 
 
@@ -70,13 +70,16 @@ def send_daily_message(lead):
     """Sends an automated email and logs the action."""
     try:
         recipient = lead.email
-        message = 'Hello, this is an automated email sent by your app.'
-
-        email = EmailService(recipient, message)
-        response = email.send_message()
-
-        logger.info(f"Email sent to {recipient} - Response: {response}")
-        print(f"Email sent to {recipient}")
+        body = process_email("generate_email", lead) 
+        logger.info(f"Sending email to {recipient}")
+        if not body or body.strip() == "":
+            logger.error(f"Email content is empty for {recipient}. Skipping email.")
+            return {"status": "error", "message": "Email content is empty."}
+        
+        logger.info(f"Email content: {body}")
+        email = EmailService(recipient, body)
+        response = email.send_message(lead)
+        logger.info(f"Response: {response}")
 
     except Exception as e:
         logger.error(f"Error sending email to {recipient}: {str(e)}")

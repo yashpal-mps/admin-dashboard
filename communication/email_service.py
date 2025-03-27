@@ -1,9 +1,13 @@
 import requests
 from .apps import Communication
 from django.conf import settings
+import logging
+from django.core.mail import send_mail
 
-MAILGUN_API_KEY = settings.MAILGUN_API_KEY
-MAILGUN_DOMAIN = settings.MAILGUN_DOMAIN
+# MAILGUN_API_KEY = settings.MAILGUN_API_KEY
+# MAILGUN_DOMAIN = settings.MAILGUN_DOMAIN
+logger = logging.getLogger(__name__)
+
 
 class EmailService(Communication):
     """Handles sending emails using Mailgun."""
@@ -11,16 +15,12 @@ class EmailService(Communication):
     def __init__(self, recipient, message):
         super().__init__(recipient, message)
 
-
-    def send_message(self):
-        response = requests.post(
-            f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages",
-            auth=("api", MAILGUN_API_KEY),
-            data={
-                "from": f"Your App <noreply@{MAILGUN_DOMAIN}>",
-                "to": self.recipient,
-                "subject": "Automated Email",
-                "text": self.message,
-            },
+    def send_message(self, lead):
+        send_mail(
+            subject=lead.reference,
+            message=self.message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[self.recipient],
+            fail_silently=False,
         )
-        return response.json()
+        print("Email sent successfully!")

@@ -15,3 +15,31 @@ venv.bak/
 *.log
 media/
 static/
+
+
+# Ignore Celery logs, PIDs, and temporary files
+celerybeat-schedule
+celerybeat.pid
+celerybeat.lock
+celerybeat-schedule-shm
+celerybeat-schedule-wal
+celeryd.log
+celeryd.pid
+celery.log
+flower.log
+celery/
+celery_*
+
+# Ignore Celery worker and task-related files
+*.celerybeat
+*.celery.pid
+*.celery.lock
+*.celery.log
+
+# Ignore any temporary or cached data
+__pycache__/
+logs/
+*.log
+*.pid
+*.db
+*.bak

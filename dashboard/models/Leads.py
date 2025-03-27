@@ -24,6 +24,7 @@ class Lead(models.Model):
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
+    reference = models.CharField(max_length=5000)
     type = models.CharField(max_length=10, choices=LEAD_STATUS)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
