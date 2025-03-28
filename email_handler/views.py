@@ -6,12 +6,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
 from celery import shared_task
-from celery.schedules import crontab
+# from celery.schedules import crontab
 # from celery.task import periodic_task
 from .tasks import analyze_email_response
 from dashboard.models import Lead
 from analysis.openrouter_ai import process_email
 import logging
+logger = logging.getLogger(__name__)
 
 
 @shared_task
@@ -64,7 +65,6 @@ class EmailHandler(View):
 
     
 
-logger = logging.getLogger(__name__)
 
 def send_daily_message(lead):
     """Sends an automated email and logs the action."""

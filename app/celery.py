@@ -10,7 +10,7 @@ app = Celery('app')
 app.conf.beat_schedule = {
     'post_to_leads_every_day': {
         'task': 'email_handler.views.post_to_leads',
-        'schedule': crontab(hour=9, minute=38)
+        'schedule': crontab(hour=8, minute=3)
     },
     'fetch_unread_emails': {
         'task': 'email_handler.email_fetcher.fetch_unread_emails',
