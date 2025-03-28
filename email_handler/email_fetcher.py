@@ -4,7 +4,8 @@ import logging
 from django.conf import settings
 from celery import shared_task
 from analysis.openrouter_ai import process_email
-from dashboard.models import Lead
+from dashboard.models.Leads import Lead
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -217,6 +218,36 @@ def fetch_unread_emails():
                 pass
 
 
+# @shared_task(name='email_handler.email_fetcher.analyze_email')
+# def analyze_email(sender, body, reference=None, original_email=None):
+#     try:
+#         # Combine original email and reply if available
+#         if original_email:
+#             combined_text = f"Original email:\n{original_email}\n\nUser's reply:\n{body}"
+#         else:
+#             combined_text = body
+
+#         # Call the OpenRouter API for sentiment analysis with combined text
+#         print("entering process_email")
+#         category = process_email(
+#             task_type="analyze_response", text=combined_text)
+#         print("exiting process_email")
+#         print(category)
+
+#         logger.info(f"Categorized email from {sender}: {category}")
+
+#         # Update lead status based on sentiment if applicable
+#         if reference:
+#             reference.status = category
+#             reference.save()
+#             logger.info(f"Updated lead status for {sender} to {category}")
+
+#         return category
+
+#     except Exception as e:
+#         logger.error(f"Error analyzing email from {sender}: {str(e)}")
+#         return "error"
+
 @shared_task(name='email_handler.email_fetcher.analyze_email')
 def analyze_email(sender, body, reference=None, original_email=None):
     try:
@@ -233,16 +264,25 @@ def analyze_email(sender, body, reference=None, original_email=None):
         print("exiting process_email")
         print(category)
 
+        # Ensure category is a valid LEAD_STATUS
+        valid_categories = dict(Lead.LEAD_STATUS)
+        if category.lower() not in valid_categories:
+            raise ValidationError(f"Invalid category: {category}")
+        
+        
+        # Log the categorization result
         logger.info(f"Categorized email from {sender}: {category}")
-
         # Update lead status based on sentiment if applicable
         if reference:
-            reference.status = category
+            reference.type = category.lower()  # Make sure it's lowercase to match choices
             reference.save()
             logger.info(f"Updated lead status for {sender} to {category}")
 
         return category
 
+    except ValidationError as e:
+        logger.error(f"Invalid category for email from {sender}: {str(e)}")
+        return "error"
     except Exception as e:
         logger.error(f"Error analyzing email from {sender}: {str(e)}")
         return "error"
