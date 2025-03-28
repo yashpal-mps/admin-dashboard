@@ -8,14 +8,17 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'app.settings')
 app = Celery('app')
 
 app.conf.beat_schedule = {
-    'post_to_leads_every_day': {
-        'task': 'email_handler.views.post_to_leads',
-        'schedule': crontab(hour=8, minute=3)
+    
+    'fetch_pending_campaign': {
+        'task': 'campaign.tasks.fetch_pending_campaigns',
+        'schedule': crontab(minute='*/1'),
     },
+
     'fetch_unread_emails': {
         'task': 'email_handler.email_fetcher.fetch_unread_emails',
-        'schedule': crontab(minute='*/5'),  
+        'schedule': crontab(minute='*/1'),
     },
+
 }
 
 app.config_from_object('django.conf:settings', namespace='CELERY')

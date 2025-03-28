@@ -46,6 +46,9 @@ INSTALLED_APPS = [
     'analysis',
     'django_celery_beat',
     'app',
+    'agent',
+    'campaign',
+    'product',
 ]
 
 MIDDLEWARE = [

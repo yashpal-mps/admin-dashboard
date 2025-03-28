@@ -6,80 +6,86 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
 from celery import shared_task
-# from celery.schedules import crontab
-# from celery.task import periodic_task
 from .tasks import analyze_email_response
 from dashboard.models import Lead
 from analysis.openrouter_ai import process_email
 import logging
+from campaign.models.Campaign import Campaign
+
 logger = logging.getLogger(__name__)
 
 
-@shared_task
-def post_to_leads():
+# class HandleIncomingEmailView(APIView):
 
-      leads = Lead.objects.all()
-      if not leads.exists():
-            logger.info("No leads found in the database.")
-            return
+#     # Disable CSRF for this endpoint (can be handled differently in production)
+#     @csrf_exempt
+#     def post(self, request):
+#         sender = request.data.get("sender")
+#         body = request.data.get("body-plain", "")
 
-      for lead in leads:
-        send_daily_message(lead)
+#         if sender and body:
+#             # Calls the task asynchronously
+#             analyze_email_response.delay(sender, body)
+#             return Response({"status": "received"}, status=200)
 
-
-class HandleIncomingEmailView(APIView):
-    
-    @csrf_exempt  # Disable CSRF for this endpoint (can be handled differently in production)
-    def post(self, request):
-        sender = request.data.get("sender")
-        body = request.data.get("body-plain", "")
-        
-        if sender and body:
-            analyze_email_response.delay(sender, body)  # Calls the task asynchronously
-            return Response({"status": "received"}, status=200)
-
-        return Response({"error": "Invalid data"}, status=400)
-
-# def get_all_leads():
-#     # Replace this with your actual logic to fetch leads
-#     return [{"id": 1, "email": "yash011033@gmail.com"}, {"id": 2, "email": "yashpal@pariqsha.com"}]
-
-@method_decorator(csrf_exempt, name='dispatch')
-class EmailHandler(View):
-    """Handles sending and receiving emails with Mailgun."""
-    
-    def post(self, request):
-        """Receives email responses via Mailgun webhook."""
-        try:
-            sender = request.POST.get("sender")
-            body = request.POST.get("body-plain", "")
-
-            if not sender or not body:
-                return JsonResponse({"error": "Invalid data"}, status=400)
-
-            analyze_email_response.delay(sender, body)
-            return JsonResponse({"status": "received"}, status=200)
-
-        except Exception as e:
-            return JsonResponse({"error": f"Internal Server Error: {str(e)}"}, status=500)
-
-    
+#         return Response({"error": "Invalid data"}, status=400)
 
 
-def send_daily_message(lead):
+def send_daily_message(lead, campaign):
     """Sends an automated email and logs the action."""
     try:
         recipient = lead.email
-        body = process_email("generate_email", lead) 
-        logger.info(f"Sending email to {recipient}")
+
+        # Get product and agent details from the campaign
+        product = campaign.products
+        agent = campaign.agent
+
+        # Create a context dictionary with all the details
+        context = {
+            'lead_name': lead.name if hasattr(lead, 'name') else "Valued Customer",
+            'lead_email': lead.email,
+            'lead_company': lead.company_name if hasattr(lead, 'company_name') else "",
+
+            'product_name': product.name if hasattr(product, 'name') else "",
+            'product_description': product.description if hasattr(product, 'description') else "",
+            'product_features': product.features if hasattr(product, 'features') else "",
+            'product_pricing': product.pricing if hasattr(product, 'pricing') else "",
+
+            'agent_name': agent.name if hasattr(agent, 'name') else "",
+            'agent_role': agent.role if hasattr(agent, 'role') else "",
+            'agent_contact': agent.contact if hasattr(agent, 'contact') else "",
+
+            'campaign_name': campaign.name,
+            'campaign_description': campaign.description,
+        }
+
+        # Format the prompt with all the context details
+        ai_prompt = (
+            "Please write a personalized sales email with the following details:\n"
+            f"Lead Name: {context['lead_name']}\n"
+            f"Lead Email: {context['lead_email']}\n"
+            f"Lead Company: {context['lead_company']}\n\n"
+            f"Product Name: {context['product_name']}\n"
+            f"Product Description: {context['product_description']}\n"
+            f"Product Features: {context['product_features']}\n"
+            f"Product Pricing: {context['product_pricing']}\n\n"
+            f"Agent Name: {context['agent_name']}\n"
+            f"Agent Role: {context['agent_role']}\n"
+            f"Agent Contact: {context['agent_contact']}\n\n"
+            f"Campaign Name: {context['campaign_name']}\n"
+            f"Campaign Description: {context['campaign_description']}"
+        )
+
+        # Pass the formatted prompt to the AI along with the lead object
+        body = process_email("generate_email", ai_prompt, lead)
+
         if not body or body.strip() == "":
-            logger.error(f"Email content is empty for {recipient}. Skipping email.")
+            logger.error(
+                f"Email content is empty for {recipient}. Skipping email.")
             return {"status": "error", "message": "Email content is empty."}
-        
-        logger.info(f"Email content: {body}")
+
         email = EmailService(recipient, body)
         response = email.send_message(lead)
-        logger.info(f"Response: {response}")
 
     except Exception as e:
         logger.error(f"Error sending email to {recipient}: {str(e)}")

@@ -23,4 +23,3 @@ class EmailService(Communication):
             recipient_list=[self.recipient],
             fail_silently=False,
         )
-        print("Email sent successfully!")
