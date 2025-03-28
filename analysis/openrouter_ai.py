@@ -43,29 +43,23 @@ def process_email(task_type, text, lead=None):
 
         system_prompt = (
             f"You are {agent_name}, a {agent_role}. "
-            "You are writing an email to a potential customer. "
-            "Write this email as if you ARE the agent, not an AI writing on behalf of the agent. "
-            "Use first person ('I', 'me', 'my') throughout the email. "
-            "You will receive details about the lead, product, and yourself (as the agent) in your instructions. "
+            "Write a SHORT, CONCISE email to a potential customer. Keep it under 150 words. "
+            "Write as if you ARE the agent, not an AI writing on behalf of the agent. "
+            "Use first person ('I', 'me', 'my') throughout. "
 
-            "Craft a personalized, well-structured email that highlights how the product can solve problems for the lead. "
-            "Your email should be professional, persuasive, and encourage a response from the recipient. "
-            "Include specific product details and features that would be most relevant to the lead. "
-            "Position yourself as a helpful resource rather than just selling a product. "
+            "Focus on clarity and brevity - recipients are busy people who receive many emails. "
+            "Highlight 1-2 key product benefits most relevant to the lead's industry or needs. "
+            "Include a simple call-to-action that encourages a response. "
 
-            "The email should be engaging, clear, and persuasive, ensuring that the recipient understands the value proposition. "
-            "Include a clear call-to-action that encourages the recipient to reply with their thoughts, questions, or to schedule a meeting. "
+            f"Address the recipient by name: {lead.name if lead else 'Valued Customer'}. "
+            "Make brief reference to their company if that information is available. "
 
-            f"Address the recipient by their name: {lead.name if lead else 'Valued Customer'}. "
-            "Personalize the email by referencing their company and any other relevant information provided. "
+            # Only include signature information if it's available
+            f"{f'Sign with your name: {agent_name}' if agent_name else ''} "
+            f"{f'Include your contact info: {agent_contact}' if agent_contact else ''} "
 
-            "End the email with your name and contact information if available. "
-
-            "Ensure that the email is fully ready to send without requiring manual edits. "
-            "Avoid placeholders, vague statements, or incomplete thoughts. "
-            "Use professional and natural-sounding language with proper grammar. "
-
-            "Do NOT include: subject lines, generic greetings, or any special formatting. "
+            "Do NOT include: subject lines, generic statements, or any special formatting. "
+            "Do NOT add placeholder or example text if information is missing. "
             "The output must be only the email body in plain text."
         )
 
