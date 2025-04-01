@@ -36,8 +36,8 @@ def send_daily_message(lead, campaign):
     try:
         recipient = lead.email
 
-        # Get product and agent details from the campaign
-        product = campaign.products
+        # Get products and agent details from the campaign
+        products = campaign.products.all()  # Get all products as a queryset
         agent = campaign.agent
 
         # Create a context dictionary with all the details
@@ -45,33 +45,38 @@ def send_daily_message(lead, campaign):
             'lead_name': lead.name if hasattr(lead, 'name') else "Valued Customer",
             'lead_email': lead.email,
             'lead_company': lead.company_name if hasattr(lead, 'company_name') else "",
-
-            'product_name': product.name if hasattr(product, 'name') else "",
-            'product_description': product.description if hasattr(product, 'description') else "",
-            'product_features': product.features if hasattr(product, 'features') else "",
-            'product_pricing': product.pricing if hasattr(product, 'pricing') else "",
+            'lead_city': lead.city if hasattr(lead, 'city') else "",
+            'lead_state': lead.state if hasattr(lead, 'state') else "",
+            'lead_country': lead.country if hasattr(lead, 'country') else "",
 
             'agent_name': agent.name if hasattr(agent, 'name') else "",
-            'agent_role': agent.role if hasattr(agent, 'role') else "",
-            'agent_contact': agent.contact if hasattr(agent, 'contact') else "",
+            'agent_email': agent.email if hasattr(agent, 'email') else "",
+            'agent_company': agent.company if hasattr(agent, 'company') else "",
 
             'campaign_name': campaign.name,
             'campaign_description': campaign.description,
         }
+
+        # Format product information for multiple products
+        product_info = ""
+        for i, product in enumerate(products, 1):
+            product_info += f"Product {i} Name: {product.name if hasattr(product, 'name') else ''}\n"
+            product_info += f"Product {i} Description: {product.description if hasattr(product, 'description') else ''}\n"
+            product_info += f"Product {i} Price: ${product.price if hasattr(product, 'price') else ''}\n"
+            product_info += f"Product {i} Category: {product.category if hasattr(product, 'category') else ''}\n"
+            product_info += f"Product {i} Type: {product.type if hasattr(product, 'type') else ''}\n\n"
 
         # Format the prompt with all the context details
         ai_prompt = (
             "Please write a personalized sales email with the following details:\n"
             f"Lead Name: {context['lead_name']}\n"
             f"Lead Email: {context['lead_email']}\n"
-            f"Lead Company: {context['lead_company']}\n\n"
-            f"Product Name: {context['product_name']}\n"
-            f"Product Description: {context['product_description']}\n"
-            f"Product Features: {context['product_features']}\n"
-            f"Product Pricing: {context['product_pricing']}\n\n"
+            f"Lead Company: {context['lead_company']}\n"
+            f"Lead Location: {context['lead_city']}, {context['lead_state']}, {context['lead_country']}\n\n"
+            f"{product_info}"
             f"Agent Name: {context['agent_name']}\n"
-            f"Agent Role: {context['agent_role']}\n"
-            f"Agent Contact: {context['agent_contact']}\n\n"
+            f"Agent Email: {context['agent_email']}\n"
+            f"Agent Company: {context['agent_company']}\n\n"
             f"Campaign Name: {context['campaign_name']}\n"
             f"Campaign Description: {context['campaign_description']}"
         )

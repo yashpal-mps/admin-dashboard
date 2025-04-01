@@ -29,20 +29,63 @@ def process_email(task_type, text, lead=None):
 
         # Extract agent details from text
         agent_name = "Sales Representative"
-        agent_role = "Sales Agent"
-        agent_contact = ""
+        agent_email = ""
+        agent_company = ""
 
-        # Try to extract agent details from the text
+        # Extract product details - now handling multiple products
+        product_details = []
+        current_product = {}
+        in_product_section = False
+
+        # Try to extract agent and product details from the text
         for line in text.split('\n'):
             if "Agent Name:" in line:
                 agent_name = line.split(':', 1)[1].strip()
-            elif "Agent Role:" in line:
-                agent_role = line.split(':', 1)[1].strip()
-            elif "Agent Contact:" in line:
-                agent_contact = line.split(':', 1)[1].strip()
+            elif "Agent Email:" in line:
+                agent_email = line.split(':', 1)[1].strip()
+            elif "Agent Company:" in line:
+                agent_company = line.split(':', 1)[1].strip()
+            elif line.startswith("Product ") and "Name:" in line:
+                if current_product and in_product_section:
+                    product_details.append(current_product)
+                    current_product = {}
+                in_product_section = True
+                current_product["name"] = line.split(
+                    ':', 1)[1].strip() if ':' in line else ""
+            elif in_product_section and "Description:" in line:
+                current_product["description"] = line.split(
+                    ':', 1)[1].strip() if ':' in line else ""
+            elif in_product_section and "Price:" in line:
+                current_product["price"] = line.split(
+                    ':', 1)[1].strip() if ':' in line else ""
+            elif in_product_section and "Category:" in line:
+                current_product["category"] = line.split(
+                    ':', 1)[1].strip() if ':' in line else ""
+            elif in_product_section and "Type:" in line:
+                current_product["type"] = line.split(
+                    ':', 1)[1].strip() if ':' in line else ""
+            elif line.strip() == "" and in_product_section and current_product:
+                product_details.append(current_product)
+                current_product = {}
+                in_product_section = False
+
+        # Add the last product if we were in a product section
+        if current_product and in_product_section:
+            product_details.append(current_product)
+
+        # Create a product summary for the system prompt
+        product_summary = ""
+        if product_details:
+            products_names = [p.get("name", "Product")
+                              for p in product_details if p.get("name")]
+            product_summary = f"You are selling: {', '.join(products_names)}. "
+            if len(product_details) > 1:
+                product_summary += f"Focus on the most relevant product(s) for this lead. "
 
         system_prompt = (
-            f"You are {agent_name}, a {agent_role}. "
+            f"You are {agent_name}, a sales representative"
+            f"{' from ' + agent_company if agent_company else ''}. "
+            f"{product_summary}"
             "Write a SHORT, CONCISE email to a potential customer. Keep it under 150 words. "
             "Write as if you ARE the agent, not an AI writing on behalf of the agent. "
             "Use first person ('I', 'me', 'my') throughout. "
@@ -56,7 +99,7 @@ def process_email(task_type, text, lead=None):
 
             # Only include signature information if it's available
             f"{f'Sign with your name: {agent_name}' if agent_name else ''} "
-            f"{f'Include your contact info: {agent_contact}' if agent_contact else ''} "
+            f"{f'Include your email: {agent_email}' if agent_email else ''} "
 
             "Do NOT include: subject lines, generic statements, or any special formatting. "
             "Do NOT add placeholder or example text if information is missing. "

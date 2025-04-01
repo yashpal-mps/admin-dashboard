@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: >
+      bash -c "python3 manage.py migrate &&
+               python3 manage.py collectstatic --noinput &&
+               gunicorn --bind 0.0.0.0:8000 app.wsgi:application"
+    volumes:
+      - .:/app
+      - ./db.sqlite3:/app/db.sqlite3
+      - ./staticfiles:/app/staticfiles
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    restart: always
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    restart: always
+
+  celery_worker:
+    build: .
+    command: >
+      bash -c "celery -A app worker --loglevel=info"
+    volumes:
+      - .:/app
+      - ./db.sqlite3:/app/db.sqlite3
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+    restart: always
+
+  celery_beat:
+    build: .
+    command: >
+      bash -c "celery -A app beat --loglevel=info"
+    volumes:
+      - .:/app
+      - ./db.sqlite3:/app/db.sqlite3
+    env_file:
+      - .env
+    depends_on:
+      - web
+      - redis
+      - celery_worker
+    restart: always
+
+volumes:
+  staticfiles: 
