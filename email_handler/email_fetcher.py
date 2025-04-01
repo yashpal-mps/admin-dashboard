@@ -21,10 +21,16 @@ def fetch_unread_emails():
     email_password = settings.EMAIL_HOST_PASSWORD
     email_host = settings.EMAIL_HOST
 
-    mail = imaplib.IMAP4_SSL(email_host)
+    logger.info(
+        f"Attempting to connect to {email_host}:993 with user {email_user}")
+    logger.info("Using IMAP4_SSL connection")
 
     try:
+        mail = imaplib.IMAP4_SSL(email_host, 993)
+        logger.info("Connected to server")
+        logger.info("Attempting to login...")
         mail.login(email_user, email_password)
+        logger.info("Login successful")
         mail.select("INBOX")
 
         status, messages = mail.search(None, "UNSEEN")
@@ -57,30 +63,27 @@ def fetch_unread_emails():
             print("Email is a reply")
 
             from_email = msg.get("From", "")
-            sender = email.utils.parseaddr(from_email)[1]
+            sender_name, sender_email = email.utils.parseaddr(from_email)
 
             subject = msg.get("Subject", "")
 
-            print("Sender is -- ", sender)
+            print("Sender is -- ", sender_email)
 
             body = ""
             original_email = ""
-            found_content = False  # To track if we found any readable content
+            found_content = False
 
             if msg.is_multipart():
                 for part in msg.walk():
                     content_type = part.get_content_type()
                     content_disposition = part.get("Content-Disposition")
 
-                    # Log for debugging
                     print(
                         f"Processing part: {content_type}, Content-Disposition: {content_disposition}")
 
-                    # Skip attachments
                     if content_disposition and "attachment" in content_disposition:
                         continue
 
-                    # Check if it's a readable email body
                     if content_type in ["text/plain", "text/html"]:
                         try:
                             content = part.get_payload(decode=True)
@@ -88,13 +91,11 @@ def fetch_unread_emails():
                                 content = content.decode(
                                     errors="replace").strip()
                                 print("Extracted content:", content)
-                                found_content = True  # Mark that we found a valid body
+                                found_content = True
 
                                 if "On" in content and "wrote:" in content:
                                     print("Found original email in body")
-                                    # Check if reply is at the end (after original email quoted with >)
                                     if content.strip().endswith(">") or ">" not in content:
-                                        # Traditional format: reply at top
                                         parts = content.split("On", 1)
                                         if len(parts) > 1:
                                             original_email = parts[1].strip()
@@ -105,7 +106,6 @@ def fetch_unread_emails():
                                             body = content
                                             print("Extracted body2:", body)
                                     else:
-                                        # Reply might be at the bottom after quoted text
                                         lines = content.splitlines()
                                         reply_lines = []
                                         in_reply = False
@@ -114,7 +114,6 @@ def fetch_unread_emails():
                                             if line.startswith(">"):
                                                 in_reply = True
                                             elif in_reply and line.strip() and not line.startswith("On") and "wrote:" not in line:
-                                                # We found non-quoted text after quoted text - likely the reply
                                                 reply_lines.append(line)
 
                                         if reply_lines:
@@ -123,7 +122,6 @@ def fetch_unread_emails():
                                             print(
                                                 "Extracted body (bottom reply):", body)
                                         else:
-                                            # Fallback to original logic
                                             parts = content.split("On", 1)
                                             if len(parts) > 1:
                                                 original_email = parts[1].strip(
@@ -138,7 +136,7 @@ def fetch_unread_emails():
                                 else:
                                     body = content
                                     print("Extracted body3:", body)
-                                break  # Stop after first valid text part
+                                break
                         except Exception as e:
                             print("Decoding error:", e)
 
@@ -150,9 +148,7 @@ def fetch_unread_emails():
                     print("Extracted content:", content)
 
                     if "On" in content and "wrote:" in content:
-                        # Check if reply is at the end (after original email quoted with >)
                         if content.strip().endswith(">") or ">" not in content:
-                            # Traditional format: reply at top
                             parts = content.split("On", 1)
                             if len(parts) > 1:
                                 original_email = parts[1].strip()
@@ -160,7 +156,6 @@ def fetch_unread_emails():
                             else:
                                 body = content
                         else:
-                            # Reply might be at the bottom after quoted text
                             lines = content.splitlines()
                             reply_lines = []
                             in_reply = False
@@ -169,13 +164,11 @@ def fetch_unread_emails():
                                 if line.startswith(">"):
                                     in_reply = True
                                 elif in_reply and line.strip() and not line.startswith("On") and "wrote:" not in line:
-                                    # We found non-quoted text after quoted text - likely the reply
                                     reply_lines.append(line)
 
                             if reply_lines:
                                 body = "\n".join(reply_lines).strip()
                             else:
-                                # Fallback to original logic
                                 parts = content.split("On", 1)
                                 if len(parts) > 1:
                                     original_email = parts[1].strip()
@@ -192,16 +185,9 @@ def fetch_unread_emails():
 
             print("Body is -- ", body)
 
-            try:
-                lead = Lead.objects.get(email=sender)
-                reference = lead
-            except Lead.DoesNotExist:
-                logger.warning(f"No lead found for sender {sender}")
-                reference = None
-
             if body:
                 print("Entering analyze_email")
-                analyze_email(sender, body, reference, original_email)
+                analyze_email(sender_email, sender_name, body, original_email)
                 mail.store(email_id, "+FLAGS", "\\Seen")
 
         mail.close()
@@ -218,7 +204,7 @@ def fetch_unread_emails():
 
 
 @shared_task(name='email_handler.email_fetcher.analyze_email')
-def analyze_email(sender, body, reference=None, original_email=None):
+def analyze_email(sender_email, sender_name, body, original_email=None):
     try:
         # Combine original email and reply if available
         if original_email:
@@ -233,16 +219,26 @@ def analyze_email(sender, body, reference=None, original_email=None):
         print("exiting process_email")
         print(category)
 
-        logger.info(f"Categorized email from {sender}: {category}")
+        logger.info(f"Categorized email from {sender_email}: {category}")
 
-        # Update lead status based on sentiment if applicable
-        if reference:
-            reference.status = category
-            reference.save()
-            logger.info(f"Updated lead status for {sender} to {category}")
+        # Get or create lead based on email
+        lead, created = Lead.objects.get_or_create(
+            email=sender_email,
+            defaults={
+                'name': sender_name,
+                'type': category
+            }
+        )
 
-        return category
+        if not created:
+            # Update existing lead's type
+            lead.type = category
+            lead.save()
+            logger.info(
+                f"Updated lead status for {sender_email} to {category}")
+        else:
+            logger.info(
+                f"Created new lead for {sender_email} with status {category}")
 
     except Exception as e:
-        logger.error(f"Error analyzing email from {sender}: {str(e)}")
-        return "error"
+        logger.error(f"Error analyzing email from {sender_email}: {str(e)}")
