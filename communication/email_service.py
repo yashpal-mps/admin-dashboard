@@ -10,12 +10,13 @@ logger = logging.getLogger(__name__)
 
 class EmailService(Communication):
 
-    def __init__(self, recipient, message):
+    def __init__(self, recipient,subject , message):
+        self.subject = subject
         super().__init__(recipient, message)
 
-    def send_message(self, lead):
+    def send_message(self):
         send_mail(
-            subject=lead.reference,
+            subject=self.subject,
             message=self.message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[self.recipient],
