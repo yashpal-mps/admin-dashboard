@@ -8,8 +8,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'app.settings')
 app = Celery('app')
 
 # Set the broker and result backend to Redis
-app.conf.broker_url = 'redis://redis:6379/0' # 'redis://localhost:6379/0'
-app.conf.result_backend = 'redis://redis:6379/0' # 'redis://localhost:6379/0'
+app.conf.broker_url = 'redis://localhost:6379/0' # 'redis://redis:6379/0'
+app.conf.result_backend = 'redis://localhost:6379/0' # 'redis://redis:6379/0'
 
 app.conf.beat_schedule = {
 

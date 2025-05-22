@@ -149,18 +149,25 @@ IMPORT_EXPORT_SKIP_ADMIN_LOG = False
 
 OPENROUTER_API_KEY = config('OPENROUTER_API_KEY')
 
+# Email Configuration
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = config('EMAIL_HOST', default="mail.pariqsha.com")
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+EMAIL_HOST_PASSWORD = 'dxc3V]TgXY$v'
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
+# IMAP Configuration for email fetching
+IMAP_HOST = config('IMAP_HOST', default=EMAIL_HOST)
+IMAP_PORT = config('IMAP_PORT', default=993, cast=int)
+IMAP_USER = config('IMAP_USER', default=EMAIL_HOST_USER)
+IMAP_PASSWORD = 'dxc3V]TgXY$v'
+
 # Celery Configuration
-CELERY_BROKER_URL = 'redis://redis:6379/0'
-CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

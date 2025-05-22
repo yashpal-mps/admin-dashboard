@@ -1,10 +1,12 @@
 import imaplib
 import email
 import logging
+import base64
 from django.conf import settings
 from celery import shared_task
 from analysis.openrouter_ai import process_email
 from dashboard.models import Lead
+from dashboard.models import Conversation
 
 logger = logging.getLogger(__name__)
 
@@ -17,20 +19,40 @@ def fetch_unread_emails():
     Fetches unread reply emails and sends them for sentiment analysis.
     Only processes emails that are replies to messages sent from our address.
     """
-    email_user = settings.EMAIL_HOST_USER
-    email_password = settings.EMAIL_HOST_PASSWORD
-    email_host = settings.EMAIL_HOST
+    email_user = settings.IMAP_USER
+    email_password = settings.IMAP_PASSWORD
+    email_host = settings.IMAP_HOST
+    email_port = settings.IMAP_PORT
+
+    # Debug log the credentials (remove in production)
+    logger.info(f"Debug: IMAP settings:")
+    logger.info(f"Debug: Host: {email_host}")
+    logger.info(f"Debug: Port: {email_port}")
+    logger.info(f"Debug: User: {email_user}")
+    logger.info(f"Debug: Password length: {len(email_password)}")
+    logger.info(
+        f"Debug: Password first/last char: {email_password[0]}/{email_password[-1]}")
+    logger.info(f"Debug: Password hex: {email_password.encode('utf-8').hex()}")
 
     logger.info(
-        f"Attempting to connect to {email_host}:993 with user {email_user}")
+        f"Attempting to connect to {email_host}:{email_port} with user {email_user}")
     logger.info("Using IMAP4_SSL connection")
 
     try:
-        mail = imaplib.IMAP4_SSL(email_host, 993)
+        # Use IMAP4_SSL for secure connection
+        mail = imaplib.IMAP4_SSL(email_host, email_port)
         logger.info("Connected to server")
+        logger.info(f"Server capabilities: {mail.capabilities}")
         logger.info("Attempting to login...")
-        mail.login(email_user, email_password)
-        logger.info("Login successful")
+
+        # Try simple login first
+        try:
+            mail.login(email_user, email_password)
+            logger.info("Login successful using regular login")
+        except Exception as e:
+            logger.error(f"Regular login failed: {str(e)}")
+            raise
+
         mail.select("INBOX")
 
         status, messages = mail.search(None, "UNSEEN")
@@ -85,7 +107,7 @@ def fetch_unread_emails():
                         continue
 
                     if content_type in ["text/plain", "text/html"]:
-                        try:
+                        try:        
                             content = part.get_payload(decode=True)
                             if content:
                                 content = content.decode(
@@ -239,6 +261,12 @@ def analyze_email(sender_email, sender_name, body, original_email=None):
         else:
             logger.info(
                 f"Created new lead for {sender_email} with status {category}")
+            
+        Conversation.objects.create(
+            lead=lead,
+            message=original_email or '',
+            user_reply=body
+        )
 
     except Exception as e:
         logger.error(f"Error analyzing email from {sender_email}: {str(e)}")

@@ -15,32 +15,14 @@ from campaign.models.Campaign import Campaign
 logger = logging.getLogger(__name__)
 
 
-# class HandleIncomingEmailView(APIView):
-
-#     # Disable CSRF for this endpoint (can be handled differently in production)
-#     @csrf_exempt
-#     def post(self, request):
-#         sender = request.data.get("sender")
-#         body = request.data.get("body-plain", "")
-
-#         if sender and body:
-#             # Calls the task asynchronously
-#             analyze_email_response.delay(sender, body)
-#             return Response({"status": "received"}, status=200)
-
-#         return Response({"error": "Invalid data"}, status=400)
-
-
 def send_daily_message(lead, campaign):
     """Sends an automated email and logs the action."""
     try:
         recipient = lead.email
 
-        # Get products and agent details from the campaign
         products = campaign.products.all()  # Get all products as a queryset
         agent = campaign.agent
 
-        # Create a context dictionary with all the details
         context = {
             'lead_name': lead.name if hasattr(lead, 'name') else "Valued Customer",
             'lead_email': lead.email,
@@ -57,7 +39,6 @@ def send_daily_message(lead, campaign):
             'campaign_description': campaign.description,
         }
 
-        # Format product information for multiple products
         product_info = ""
         for i, product in enumerate(products, 1):
             product_info += f"Product {i} Name: {product.name if hasattr(product, 'name') else ''}\n"
@@ -66,7 +47,6 @@ def send_daily_message(lead, campaign):
             product_info += f"Product {i} Category: {product.category if hasattr(product, 'category') else ''}\n"
             product_info += f"Product {i} Type: {product.type if hasattr(product, 'type') else ''}\n\n"
 
-        # Format the prompt with all the context details
         ai_prompt = (
             "Please write a personalized sales email with the following details:\n"
             f"Lead Name: {context['lead_name']}\n"
@@ -81,16 +61,34 @@ def send_daily_message(lead, campaign):
             f"Campaign Description: {context['campaign_description']}"
         )
 
-        # Pass the formatted prompt to the AI along with the lead object
-        body = process_email("generate_email", ai_prompt, lead)
+        body = process_email("generate_email", ai_prompt, agent, lead)
 
-        if not body or body.strip() == "":
-            logger.error(
-                f"Email content is empty for {recipient}. Skipping email.")
-            return {"status": "error", "message": "Email content is empty."}
+        if body and isinstance(body, str):
+            body = body.strip()
+            parts = body.split('\n', 1)
 
-        email = EmailService(recipient, body)
-        response = email.send_message(lead)
+        if len(parts) > 0:
+            subject = parts[0].strip()
+
+        if len(parts) > 1:
+            email_content = parts[1].lstrip('\n')
+            email_content = email_content.strip()
+
+        elif len(parts) == 1:
+            subject = parts[0].strip()
+            email_content = ""
+        else:
+            print("Warning: Received empty or invalid body content.")
+            subject = ""
+            email_content = ""
+
+        print(f"Extracted Subject: '{subject}'")
+        print("---")
+        print(f"Extracted Email Content:\n{email_content}")
+        print("---")
+
+        email = EmailService(recipient, subject, email_content)
+        response = email.send_message()
 
     except Exception as e:
         logger.error(f"Error sending email to {recipient}: {str(e)}")

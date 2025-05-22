@@ -5,7 +5,7 @@ import json
 OPENROUTER_API_KEY = settings.OPENROUTER_API_KEY
 
 
-def process_email(task_type, text, lead=None):
+def process_email(task_type, text, agent, lead=None):
 
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
@@ -14,104 +14,43 @@ def process_email(task_type, text, lead=None):
     }
 
     if task_type == "generate_email":
-        # Extract lead information if lead object is provided
-        lead_info = ""
-        if lead:
-            lead_info = (
-                f"Lead Name: {lead.name}\n"
-                f"Company: {lead.company_name}\n"
-                f"City: {lead.city}\n"
-                f"State: {lead.state}\n"
-                f"Country: {lead.country}\n"
-            )
-            if hasattr(lead, 'reference') and lead.reference:
-                lead_info += f"Reference/Notes: {lead.reference}\n"
 
-        # Extract agent details from text
-        agent_name = "Sales Representative"
-        agent_email = ""
-        agent_company = ""
+        # system_prompt = (
+        #     "You are an AI assistant generating a personalized sales email based on the detailed context provided in the user message. "
+        #     "Your primary goal is to generate both a compelling subject line and a SHORT, CONCISE, and effective email body (under 150 words for the body)."
+        #     "\n\n"
+        #     "**Instructions:**\n"
+        #     "1.  **Analyze Context:** Carefully read the entire user message to identify all key details: the sales agent's name/company, the potential customer's (lead) name/company/location, the product(s)/service(s) being offered (including features or benefits), and any campaign context.\n"
 
-        # Extract product details - now handling multiple products
-        product_details = []
-        current_product = {}
-        in_product_section = False
+        #     "2.  **Create Subject Line:** Generate a compelling email subject line designed to maximize the chance of the email being opened. It should be concise and relevant to the core message, product, or benefit being offered. \n"
+        #     "    * **Crucially: The subject line MUST NOT be a greeting.** Do NOT include 'Hi [Lead Name]', 'Hello [Lead Name]', or just the lead's name in the subject.\n"
+        #     "    * **Examples of appropriate subject styles:** 'Boosting Productivity at [Lead Company]?', 'Quick Question about [Product Category]', 'Idea for [Lead Company]', '[Product Name] Offer', 'Unlock [Benefit] for [Lead Company]'.\n"
+        #     "    * This subject line MUST be the very first line of your output.\n"
 
-        # Try to extract agent and product details from the text
-        for line in text.split('\n'):
-            if "Agent Name:" in line:
-                agent_name = line.split(':', 1)[1].strip()
-            elif "Agent Email:" in line:
-                agent_email = line.split(':', 1)[1].strip()
-            elif "Agent Company:" in line:
-                agent_company = line.split(':', 1)[1].strip()
-            elif line.startswith("Product ") and "Name:" in line:
-                if current_product and in_product_section:
-                    product_details.append(current_product)
-                    current_product = {}
-                in_product_section = True
-                current_product["name"] = line.split(
-                    ':', 1)[1].strip() if ':' in line else ""
-            elif in_product_section and "Description:" in line:
-                current_product["description"] = line.split(
-                    ':', 1)[1].strip() if ':' in line else ""
-            elif in_product_section and "Price:" in line:
-                current_product["price"] = line.split(
-                    ':', 1)[1].strip() if ':' in line else ""
-            elif in_product_section and "Category:" in line:
-                current_product["category"] = line.split(
-                    ':', 1)[1].strip() if ':' in line else ""
-            elif in_product_section and "Type:" in line:
-                current_product["type"] = line.split(
-                    ':', 1)[1].strip() if ':' in line else ""
-            elif line.strip() == "" and in_product_section and current_product:
-                product_details.append(current_product)
-                current_product = {}
-                in_product_section = False
+        #     "3.  **Adopt Persona (for Body):** Write the email body *as if you are* the sales agent identified in the user message. Use the first person ('I', 'me', 'my').\n"
 
-        # Add the last product if we were in a product section
-        if current_product and in_product_section:
-            product_details.append(current_product)
+        #     "4.  **Personalize (for Body):** Start the email body content (beginning on Line 3, after the blank line) with a personalized greeting addressing the lead directly by name (e.g., 'Hi [Lead Name],', 'Hello [Lead Name],'). Briefly mention their company if provided in the user message, showing you've done some research (based *only* on the provided text).\n"
 
-        # Create a product summary for the system prompt
-        product_summary = ""
-        if product_details:
-            products_names = [p.get("name", "Product")
-                              for p in product_details if p.get("name")]
-            product_summary = f"You are selling: {', '.join(products_names)}. "
-            if len(product_details) > 1:
-                product_summary += f"Focus on the most relevant product(s) for this lead. "
+        #     "5.  **Focus (for Body):** In the email body, highlight 1-2 key benefits of the product/service that seem most relevant based on the information available about the lead in the user message.\n"
 
-        system_prompt = (
-            f"You are {agent_name}, a sales representative"
-            f"{' from ' + agent_company if agent_company else ''}. "
-            f"{product_summary}"
-            "Write a SHORT, CONCISE email to a potential customer. Keep it under 150 words. "
-            "Write as if you ARE the agent, not an AI writing on behalf of the agent. "
-            "Use first person ('I', 'me', 'my') throughout. "
+        #     "6.  **Conciseness (for Body):** Keep the email body direct and under 150 words.\n"
 
-            "Focus on clarity and brevity - recipients are busy people who receive many emails. "
-            "Highlight 1-2 key product benefits most relevant to the lead's industry or needs. "
-            "Include a simple call-to-action that encourages a response. "
+        #     "7.  **Call to Action (for Body):** Include a clear, simple call-to-action in the email body (e.g., 'Are you available for a brief chat next week?', 'Would you be open to learning more?').\n"
 
-            f"Address the recipient by name: {lead.name if lead else 'Valued Customer'}. "
-            "Make brief reference to their company if that information is available. "
+        #     "8.  **Signature (for Body):** If the agent's name and email address are specified in the user message, include them at the end of the email body. Do not add placeholders if details are missing.\n"
 
-            # Only include signature information if it's available
-            f"{f'Sign with your name: {agent_name}' if agent_name else ''} "
-            f"{f'Include your email: {agent_email}' if agent_email else ''} "
+        #     "9.  **Output Format:** Your entire output MUST follow this structure exactly:\n"
+        #     "    * **Line 1:** The email subject line (created according to instruction #2 - **it must NOT be a greeting**).\n"
+        #     "    * **Line 2:** A single blank line.\n"
+        #     "    * **Line 3 onwards:** The complete email body, starting with the personalized greeting (e.g., 'Hi [Lead Name],'), followed by the main content, closing, and signature if applicable.\n"
+        #     "    * Ensure there is no extra text before the subject line or after the email body."
+        # )
 
-            "Do NOT include: subject lines, generic statements, or any special formatting. "
-            "Do NOT add placeholder or example text if information is missing. "
-            "The output must be only the email body in plain text."
-        )
-
-        # Combine lead info with the campaign/product/agent details in text
-        complete_prompt = f"{lead_info}\n\n{text}" if lead_info else text
+        system_prompt = agent.systemPrompt
 
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": complete_prompt}
+            {"role": "user", "content": text}
         ]
 
     elif task_type == "analyze_response":
