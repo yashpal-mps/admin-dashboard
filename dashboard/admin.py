@@ -27,7 +27,7 @@ class LeadAdmin(ImportExportModelAdmin):
 
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
-    list_display = ('id', 'leads', 'message', 'created_at', 'updated_at')
+    list_display = ('id', 'leads', 'message', 'user_reply', 'created_at', 'updated_at')
     list_filter = ('created_at', 'leads')
     search_fields = ('message', 'leads__company_name')
     readonly_fields = ('created_at', 'updated_at')

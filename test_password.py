@@ -5,7 +5,7 @@ load_dotenv()
 
 
 def test_password_encoding():
-    password = os.getenv('IMAP_PASSWORD', 'dxc3V]TgXY$v')
+    password = os.getenv('IMAP_PASSWORD')
     print("Password:", password)
     print("Password bytes:", password.encode('utf-8'))
     print("Password hex:", ' '.join(hex(b)[2:]

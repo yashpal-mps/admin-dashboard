@@ -7,10 +7,10 @@ load_dotenv()
 
 def test_imap_connection():
     # Get credentials from environment
-    email_host = os.getenv('IMAP_HOST', 'mail.pariqsha.com')
-    email_port = int(os.getenv('IMAP_PORT', '993'))
-    email_user = os.getenv('IMAP_USER', 'yashpal@pariqsha.com')
-    email_password = os.getenv('IMAP_PASSWORD', 'dxc3V]TgXY$v')
+    email_host = os.getenv('IMAP_HOST')
+    email_port = int(os.getenv('IMAP_PORT'))
+    email_user = os.getenv('IMAP_USER')
+    email_password = os.getenv('IMAP_PASSWORD')
 
     print(f"Testing IMAP connection to {email_host}:{email_port}")
     print(f"Using username: {email_user}")

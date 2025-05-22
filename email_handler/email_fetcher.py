@@ -6,6 +6,7 @@ from django.conf import settings
 from celery import shared_task
 from analysis.openrouter_ai import process_email
 from dashboard.models import Lead
+from dashboard.models import Conversation
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +261,12 @@ def analyze_email(sender_email, sender_name, body, original_email=None):
         else:
             logger.info(
                 f"Created new lead for {sender_email} with status {category}")
+            
+        Conversation.objects.create(
+            lead=lead,
+            message=original_email or '',
+            user_reply=body
+        )
 
     except Exception as e:
         logger.error(f"Error analyzing email from {sender_email}: {str(e)}")

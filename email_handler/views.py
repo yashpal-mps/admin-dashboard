@@ -14,6 +14,7 @@ from campaign.models.Campaign import Campaign
 
 logger = logging.getLogger(__name__)
 
+
 def send_daily_message(lead, campaign):
     """Sends an automated email and logs the action."""
     try:
@@ -60,14 +61,14 @@ def send_daily_message(lead, campaign):
             f"Campaign Description: {context['campaign_description']}"
         )
 
-        body = process_email("generate_email", ai_prompt, lead)
+        body = process_email("generate_email", ai_prompt, agent, lead)
 
         if body and isinstance(body, str):
             body = body.strip()
             parts = body.split('\n', 1)
 
         if len(parts) > 0:
-            subject = parts[0].strip() 
+            subject = parts[0].strip()
 
         if len(parts) > 1:
             email_content = parts[1].lstrip('\n')
@@ -75,12 +76,11 @@ def send_daily_message(lead, campaign):
 
         elif len(parts) == 1:
             subject = parts[0].strip()
-            email_content = "" 
+            email_content = ""
         else:
             print("Warning: Received empty or invalid body content.")
             subject = ""
             email_content = ""
-
 
         print(f"Extracted Subject: '{subject}'")
         print("---")
