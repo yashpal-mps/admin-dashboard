@@ -107,7 +107,7 @@ def fetch_unread_emails():
                         continue
 
                     if content_type in ["text/plain", "text/html"]:
-                        try:        
+                        try:
                             content = part.get_payload(decode=True)
                             if content:
                                 content = content.decode(
@@ -247,7 +247,7 @@ def analyze_email(sender_email, sender_name, body, original_email=None):
         lead, created = Lead.objects.get_or_create(
             email=sender_email,
             defaults={
-                'name': sender_name,
+                'name': sender_email,
                 'type': category
             }
         )
@@ -261,12 +261,14 @@ def analyze_email(sender_email, sender_name, body, original_email=None):
         else:
             logger.info(
                 f"Created new lead for {sender_email} with status {category}")
-            
+
         Conversation.objects.create(
-            lead=lead,
+            leads=lead,
             message=original_email or '',
             user_reply=body
         )
+
+        logger.info(f"Created new conversation for {sender_email}")
 
     except Exception as e:
         logger.error(f"Error analyzing email from {sender_email}: {str(e)}")

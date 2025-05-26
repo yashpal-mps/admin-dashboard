@@ -10,8 +10,9 @@ class Agent(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
     email = models.EmailField(max_length=255)
-    company = models.CharField(max_length=255, null = True)
-    systemPrompt = models.TextField(null = True)
+    company = models.CharField(max_length=255, null=True)
+    signature = models.TextField(null=True, blank=True)
+    systemPrompt = models.TextField(null=True)
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)

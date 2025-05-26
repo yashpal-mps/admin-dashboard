@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -80,6 +81,14 @@ TEMPLATES = [
         },
     },
 ]
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Your Dashboard",
+    "site_header": "My Admin",
+    "welcome_sign": "Welcome to your Admin Panel",
+    "show_sidebar": True,
+    "navigation_expanded": True,
+}
 
 WSGI_APPLICATION = 'app.wsgi.application'
 

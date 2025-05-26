@@ -5,7 +5,7 @@ import json
 OPENROUTER_API_KEY = settings.OPENROUTER_API_KEY
 
 
-def process_email(task_type, text, agent, lead=None):
+def process_email(task_type, text, agent=None, lead=None):
 
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {

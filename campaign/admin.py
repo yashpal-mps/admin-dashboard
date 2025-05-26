@@ -8,7 +8,7 @@ class CampaignAdmin(admin.ModelAdmin):
     
     
     list_display = ('id', 'name', 'agent', 'started_at',
-                    'ended_at', 'created_at', 'updated_at', 'send_email_button')
+                    'ended_at','send_start_time', 'send_end_time','emails_per_hour', 'created_at', 'updated_at', 'send_email_button')
     list_filter = ('agent', 'started_at', 'ended_at')
     search_fields = ('name', 'description')
     ordering = ('-created_at',)
@@ -17,7 +17,7 @@ class CampaignAdmin(admin.ModelAdmin):
         # Return a button for sending the email, along with a form for email input only.
         return format_html(
             '''
-            <button type="button" class="send-email-btn" data-id="{}">Send Email</button>
+            <button type="button" class="send-email-btn" data-id="{}">Test Email</button>
             <div class="email-form-container" id="form-{}" style="display:none; margin-top: 5px;">
                 <input type="email" class="email-input" placeholder="Enter email address" />
                 <button type="button" class="email-send-btn" data-id="{}">Send</button>
@@ -27,7 +27,7 @@ class CampaignAdmin(admin.ModelAdmin):
             obj.pk, obj.pk, obj.pk
         )
 
-    send_email_button.short_description = 'Send Email'
+    send_email_button.short_description = 'Test Email'
     
     class Media:
         js = ('campaign/admin_send_email.js',)

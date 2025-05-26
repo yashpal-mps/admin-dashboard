@@ -20,4 +20,5 @@ from django.urls import include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('email/', include('email_handler.urls')),
+    path('campaign/', include('campaign.urls')),
 ]
